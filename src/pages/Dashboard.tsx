@@ -117,10 +117,6 @@ const Dashboard: React.FC = () => {
         <div>
           <h1 className="text-4xl font-brand font-black text-white tracking-tight uppercase">Executive Overview</h1>
           <p className="text-white/40 mt-1 font-medium text-sm">Comprehensive overview of the AURE SCENTS Encyclopedia library.</p>
-        </div>
-        <Button className="glass-button-active h-11 px-8 rounded-xl font-brand font-black text-[10px] uppercase tracking-widest">
-          <FileDown className="w-4 h-4 mr-2" /> Export Dispatch
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
