@@ -146,7 +146,6 @@ const AdminUsers: React.FC = () => {
         onAdd={handleAdd}
         onEdit={handleEdit}
         onArchive={handleArchive}
-        onUnarchive={handleUnarchive}
         searchPlaceholder="Search admins by email or name..."
       />
 
@@ -182,5 +181,6 @@ const AdminUsers: React.FC = () => {
 };
 
 export default AdminUsers;
+
 
 

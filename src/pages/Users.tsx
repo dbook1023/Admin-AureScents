@@ -2,8 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { UserCircle, Mail, Droplet, Compass, Hash, Sparkles } from 'lucide-react';
 import ResourceDataTable from '@/components/admin/ResourceDataTable';
 import ResourceModal from '@/components/admin/ResourceModal';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
 import { showError, showSuccess } from '@/lib/feedback';
 
@@ -228,4 +226,5 @@ const Users: React.FC = () => {
 };
 
 export default Users;
+
 
