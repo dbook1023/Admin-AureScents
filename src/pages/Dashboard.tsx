@@ -5,8 +5,7 @@ import {
   Tags, 
   UserCircle,
   ArrowUpRight, 
-  ArrowDownRight,
-  FileDown
+  ArrowDownRight
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
