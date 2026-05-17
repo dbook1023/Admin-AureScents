@@ -8,7 +8,6 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-// Import removed to avoid duplication
 import { X } from 'lucide-react';
 
 interface ResourceModalProps {
@@ -40,7 +39,13 @@ const ResourceModal: React.FC<ResourceModalProps> = ({
               {description}
             </DialogDescription>
           </div>
-          <button onClick={onClose} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-premium text-white/30 hover:text-white group">
+          <button
+            type="button"
+            onClick={onClose}
+            title="Close"
+            aria-label="Close"
+            className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-premium text-white/30 hover:text-white group"
+          >
              <X className="w-5 h-5 group-hover:scale-110 transition-transform" />
           </button>
         </DialogHeader>

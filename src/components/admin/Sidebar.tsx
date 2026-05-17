@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   BarChart3, 
@@ -6,7 +6,6 @@ import {
   Droplet, 
   UserCircle, 
   FileText, 
-  Layers, 
   Tags, 
   Settings, 
   Shield, 
@@ -17,6 +16,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import LogoutModal from '@/components/admin/LogoutModal';
 
 interface SidebarProps {
   className?: string;
@@ -26,16 +26,17 @@ interface SidebarProps {
 const menuItems = [
   { icon: BarChart3, label: 'Analytics', path: '/dashboard' },
   { icon: Users, label: 'Users', path: '/users' },
-  { icon: Droplet, label: 'Encyclopedia', path: '/perfumes' },
+  { icon: Droplet, label: 'Perfumes', path: '/perfumes' },
   { icon: UserCircle, label: 'Perfumers', path: '/perfumers' },
   { icon: FileText, label: 'Journals', path: '/journals' },
   { icon: Tags, label: 'Brand Library', path: '/brands' },
-  { icon: Layers, label: 'Accord Library', path: '/accords' },
   { icon: Sparkles, label: 'Note Library', path: '/notes' },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ className, onClose }) => {
-  const handleLogout = () => {
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  const confirmLogout = () => {
     localStorage.removeItem('isAuthenticated');
     window.location.href = '/login';
   };
@@ -138,7 +139,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className, onClose }) => {
                 <span className="text-[9px] text-white/20 truncate font-black tracking-tighter uppercase mt-1">{role}</span>
               </div>
               <button 
-                onClick={handleLogout}
+                onClick={() => setIsLogoutModalOpen(true)}
+                title="Log out"
+                aria-label="Log out"
                 className="ml-auto text-white/20 hover:text-red-400 transition-premium p-2 hover:bg-red-400/10 rounded-lg"
               >
                 <LogOut className="w-4 h-4" />
@@ -147,6 +150,12 @@ const Sidebar: React.FC<SidebarProps> = ({ className, onClose }) => {
           );
         })()}
       </div>
+
+      <LogoutModal 
+        isOpen={isLogoutModalOpen} 
+        onClose={() => setIsLogoutModalOpen(false)} 
+        onConfirm={confirmLogout} 
+      />
     </div>
   );
 };

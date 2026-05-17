@@ -52,7 +52,9 @@ interface ResourceDataTableProps<T> {
   columns: Column<T>[];
   onAdd?: () => void;
   onEdit: (item: T) => void;
+  editLabel?: string;
   onArchive: (item: T) => void;
+  onUnarchive?: (item: T) => void;
   onDelete?: (item: T) => void;
   onView?: (item: T) => void;
   searchPlaceholder?: string;
@@ -65,13 +67,15 @@ const ResourceDataTable = <T extends { id: string | number; status?: string }>({
   columns,
   onAdd,
   onEdit,
+  editLabel = 'Update Entry',
   onArchive,
+  onUnarchive,
   onDelete,
   onView,
   searchPlaceholder = "Search the repository..."
 }: ResourceDataTableProps<T>) => {
   const { searchQuery, setSearchQuery } = useSearch();
-  const [confirmAction, setConfirmAction] = useState<{ type: 'archive' | 'delete'; item: T } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: 'archive' | 'unarchive' | 'delete'; item: T } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -103,6 +107,8 @@ const ResourceDataTable = <T extends { id: string | number; status?: string }>({
     if (!confirmAction) return;
     if (confirmAction.type === 'archive') {
       onArchive(confirmAction.item);
+    } else if (confirmAction.type === 'unarchive' && onUnarchive) {
+      onUnarchive(confirmAction.item);
     } else if (confirmAction.type === 'delete' && onDelete) {
       onDelete(confirmAction.item);
     }
@@ -196,12 +202,18 @@ const ResourceDataTable = <T extends { id: string | number; status?: string }>({
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem onClick={() => onEdit(item)} className="flex items-center gap-3 cursor-pointer hover:bg-white/5 rounded-xl p-3 text-xs font-bold transition-premium text-white/70">
-                            <Edit className="w-4 h-4 text-[#C5A059]" /> Update Entry
+                            <Edit className="w-4 h-4 text-[#C5A059]" /> {editLabel}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="bg-white/5 mx-1" />
-                          <DropdownMenuItem onClick={() => setConfirmAction({ type: 'archive', item })} className="flex items-center gap-3 cursor-pointer hover:bg-[#C5A059]/10 rounded-xl p-3 text-xs font-bold text-[#C5A059] transition-premium">
-                            <Archive className="w-4 h-4" /> Archive Item
-                          </DropdownMenuItem>
+                          {(item as any).is_archived && onUnarchive ? (
+                            <DropdownMenuItem onClick={() => setConfirmAction({ type: 'unarchive', item })} className="flex items-center gap-3 cursor-pointer hover:bg-emerald-500/10 rounded-xl p-3 text-xs font-bold text-emerald-500 transition-premium">
+                              <Archive className="w-4 h-4 rotate-180" /> Restore Item
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={() => setConfirmAction({ type: 'archive', item })} className="flex items-center gap-3 cursor-pointer hover:bg-[#C5A059]/10 rounded-xl p-3 text-xs font-bold text-[#C5A059] transition-premium">
+                              <Archive className="w-4 h-4" /> Archive Item
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => setConfirmAction({ type: 'delete', item })} className="flex items-center gap-3 cursor-pointer hover:bg-red-500/10 rounded-xl p-3 text-xs font-bold text-red-500 transition-premium">
                             <Trash2 className="w-4 h-4" /> Delete Discovery
                           </DropdownMenuItem>
@@ -287,3 +299,4 @@ const ResourceDataTable = <T extends { id: string | number; status?: string }>({
 };
 
 export default ResourceDataTable;
+

@@ -1,6 +1,5 @@
-import React from 'react';
-import { Search, Bell, Menu, User } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import React, { useState } from 'react';
+import { Bell, Menu, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
   DropdownMenu, 
@@ -11,14 +10,19 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useSearch } from '@/context/SearchContext';
+import LogoutModal from '@/components/admin/LogoutModal';
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
-  const { searchQuery, setSearchQuery } = useSearch();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  const confirmLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    window.location.href = '/login';
+  };
 
   return (
     <header className="h-20 backdrop-blur-xl bg-[#0A192F]/40 border-b border-white/5 flex items-center justify-between px-8 sticky top-0 z-30 transition-premium">
@@ -26,16 +30,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         <Button variant="ghost" size="icon" onClick={onMenuClick} className="lg:hidden text-white hover:bg-white/10 rounded-xl">
           <Menu className="w-5 h-5" />
         </Button>
-        <div className="relative max-w-xl w-full hidden md:block group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[#C5A059] transition-premium" />
-          <Input 
-            type="search" 
-            placeholder="Search entries, brands, notes..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-white/5 border-none text-white pl-12 h-11 w-full rounded-xl focus-visible:ring-1 focus-visible:ring-[#C5A059]/30 transition-premium font-medium text-xs placeholder:text-white/20"
-          />
-        </div>
       </div>
 
       <div className="flex items-center gap-6">
@@ -76,15 +70,18 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                <User className="w-4 h-4 mr-3 opacity-50" /> Profile Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator className="mx-1 bg-white/5" />
-            <DropdownMenuItem className="text-red-400 focus:bg-red-400/10 focus:text-red-400 cursor-pointer rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest" onClick={() => {
-              localStorage.removeItem('isAuthenticated');
-              window.location.href = '/login';
-            }}>
+            <DropdownMenuItem className="text-red-400 focus:bg-red-400/10 focus:text-red-400 cursor-pointer rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest" onClick={() => setIsLogoutModalOpen(true)}>
               Logout Session
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <LogoutModal 
+        isOpen={isLogoutModalOpen} 
+        onClose={() => setIsLogoutModalOpen(false)} 
+        onConfirm={confirmLogout} 
+      />
     </header>
   );
 };

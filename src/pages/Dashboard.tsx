@@ -3,9 +3,9 @@ import {
   Users, 
   Droplet, 
   Tags, 
+  UserCircle,
   ArrowUpRight, 
   ArrowDownRight,
-  Heart,
   FileDown
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
@@ -55,7 +55,7 @@ const StatCard = ({ title, value, icon: Icon, trend, trendValue }: any) => (
 
 const Dashboard: React.FC = () => {
   const { searchQuery } = useSearch();
-  const [stats, setStats] = useState({ users: 0, entries: 0, brands: 0, favorites: 0 });
+  const [stats, setStats] = useState({ users: 0, entries: 0, brands: 0, perfumers: 0 });
   const [chartData, setChartData] = useState(defaultChartData);
   const [recentEntries, setRecentEntries] = useState<any[]>([]);
 
@@ -65,20 +65,25 @@ const Dashboard: React.FC = () => {
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
       const fromDate = oneYearAgo.toISOString();
 
-      const [profilesResp, perfumesCountResp, brandsResp, favoritesResp, recentPerfumesResp, monthlyPerfumesResp, monthlyJournalsResp] = await Promise.all([
+      const [profilesResp, perfumesCountResp, brandsResp, perfumersResp, recentPerfumesResp, monthlyPerfumesResp] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.from('perfumes').select('id', { count: 'exact', head: true }),
         supabase.from('perfume_brands').select('id', { count: 'exact', head: true }),
-        supabase.from('favorites').select('user_id', { count: 'exact', head: true }),
+        supabase.from('perfumers').select('id', { count: 'exact', head: true }),
         supabase.from('perfumes').select('id,name,brand,short_description,is_archived,created_at').order('created_at', { ascending: false }).limit(4),
         supabase.from('perfumes').select('created_at').gte('created_at', fromDate),
-        supabase.from('user_journal_entries').select('created_at').gte('created_at', fromDate),
       ]);
+
+      if (profilesResp.error) console.error('Dashboard profiles count error:', profilesResp.error.message);
+      if (perfumesCountResp.error) console.error('Dashboard perfumes count error:', perfumesCountResp.error.message);
+      if (brandsResp.error) console.error('Dashboard brands count error:', brandsResp.error.message);
+      if (perfumersResp.error) console.error('Dashboard perfumers count error:', perfumersResp.error.message);
 
       const usersCount = profilesResp.count ?? 0;
       const entriesCount = perfumesCountResp.count ?? 0;
       const brandsCount = brandsResp.count ?? 0;
-      const favoritesCount = favoritesResp.count ?? 0;
+      const perfumersCount = perfumersResp.count ?? 0;
+      const currentMonthKey = monthLabels[new Date().getMonth()];
 
       const activityMap = monthLabels.reduce((acc, month) => {
         acc[month] = { likes: 0, entries: 0 };
@@ -96,12 +101,9 @@ const Dashboard: React.FC = () => {
         if (month) activityMap[month].entries += 1;
       });
 
-      monthlyJournalsResp.data?.forEach((row: any) => {
-        const month = monthFromDate(row.created_at);
-        if (month) activityMap[month].likes += 1;
-      });
+      activityMap[currentMonthKey].likes = perfumersCount;
 
-      setStats({ users: usersCount, entries: entriesCount, brands: brandsCount, favorites: favoritesCount });
+      setStats({ users: usersCount, entries: entriesCount, brands: brandsCount, perfumers: perfumersCount });
       setChartData(monthLabels.map((name) => ({ name, ...activityMap[name] })));
       setRecentEntries(recentPerfumesResp.data || []);
     };
@@ -122,10 +124,10 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Active Users" value={stats.users.toLocaleString()} icon={Users} trend="up" trendValue={stats.users > 0 ? '+0.0%' : '—'} />
-        <StatCard title="Encyclopedia Entries" value={stats.entries.toLocaleString()} icon={Droplet} trend="up" trendValue={stats.entries > 0 ? '+0.0%' : '—'} />
-        <StatCard title="Affiliated Brands" value={stats.brands.toLocaleString()} icon={Tags} trend="up" trendValue={stats.brands > 0 ? '+0.0%' : '—'} />
-        <StatCard title="Total Favorites" value={stats.favorites.toLocaleString()} icon={Heart} trend="up" trendValue={stats.favorites > 0 ? '+0.0%' : '—'} />
+        <StatCard title="Active Users" value={stats.users.toLocaleString()} icon={Users} trend="up" trendValue={stats.users > 0 ? `${stats.users} TOTAL` : 'NO DATA'} />
+        <StatCard title="Encyclopedia Entries" value={stats.entries.toLocaleString()} icon={Droplet} trend="up" trendValue={stats.entries > 0 ? `${stats.entries} TOTAL` : 'NO DATA'} />
+        <StatCard title="Affiliated Brands" value={stats.brands.toLocaleString()} icon={Tags} trend="up" trendValue={stats.brands > 0 ? `${stats.brands} TOTAL` : 'NO DATA'} />
+        <StatCard title="Total Perfumers" value={stats.perfumers.toLocaleString()} icon={UserCircle} trend="up" trendValue={stats.perfumers > 0 ? `${stats.perfumers} TOTAL` : 'NO DATA'} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -218,6 +220,7 @@ const Dashboard: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
     </div>
   );
 };

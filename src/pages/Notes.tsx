@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import ResourceDataTable from '@/components/admin/ResourceDataTable';
 import ResourceModal from '@/components/admin/ResourceModal';
+import ImageUploadField from '@/components/admin/ImageUploadField';
+import ImagePreviewModal from '@/components/admin/ImagePreviewModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/lib/supabase';
+import { confirmAction, showError, showSuccess } from '@/lib/feedback';
+import ResourceViewModal from '@/components/admin/ResourceViewModal';
 
 const Notes: React.FC = () => {
   const [data, setData] = useState<any[]>([]);
@@ -16,7 +20,9 @@ const Notes: React.FC = () => {
   const [imageUrl, setImageUrl] = useState('');
   const [olfactoryCharacter, setOlfactoryCharacter] = useState('Floral');
   const [intensity, setIntensity] = useState('Moderate');
-  const [season, setSeason] = useState('All Seasons');
+  const [season, setSeason] = useState('Daily');
+  const [previewImageUrl, setPreviewImageUrl] = useState('');
+  const [viewingItem, setViewingItem] = useState<any>(null);
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -35,16 +41,14 @@ const Notes: React.FC = () => {
     fetchNotes();
   }, []);
 
-  const uniqueOlfactoryCharacters = Array.from(new Set(data.map(n => n.olfactory_character).filter(Boolean)));
-
   const handleAdd = () => {
     setEditingItem(null);
     setName('');
     setDescription('');
     setImageUrl('');
     setOlfactoryCharacter('Floral');
-    setIntensity('Moderate');
-    setSeason('All Seasons');
+    setIntensity('Medium');
+    setSeason('Daily');
     setIsModalOpen(true);
   };
 
@@ -54,12 +58,16 @@ const Notes: React.FC = () => {
     setDescription(item.description || '');
     setImageUrl(item.image_url || '');
     setOlfactoryCharacter(item.olfactory_character || 'Floral');
-    setIntensity(item.intensity || 'Moderate');
-    setSeason(item.season || 'All Seasons');
+    setIntensity(item.intensity || 'Medium');
+    setSeason(item.season || 'Daily');
     setIsModalOpen(true);
   };
 
   const handleSubmit = async () => {
+    if (!await confirmAction(editingItem ? 'Save changes to this note?' : 'Create this note?')) {
+      return;
+    }
+
     const payload = {
       name,
       description,
@@ -78,10 +86,10 @@ const Notes: React.FC = () => {
       if (!error) {
         setData((prev) => prev.map((item) => item.id === editingItem.id ? { ...item, ...payload } : item));
         setIsModalOpen(false);
-        alert('Note updated successfully!');
+        showSuccess('Note updated successfully.');
       } else {
         console.error('Failed to update note:', error);
-        alert('Failed to update note: ' + error.message);
+        showError(`Failed to update note: ${error.message}`);
       }
     } else {
       const { data: newItems, error } = await supabase
@@ -92,22 +100,35 @@ const Notes: React.FC = () => {
       if (!error && newItems) {
         setData((prev) => [...newItems, ...prev]);
         setIsModalOpen(false);
-        alert('Note created successfully!');
+        showSuccess('Note created successfully.');
       } else {
         console.error('Failed to add note:', error);
-        alert('Failed to add note: ' + error.message);
+        showError(`Failed to add note: ${error?.message || 'Unknown error'}`);
       }
     }
   };
 
   const columns = [
     {
+      header: 'Image',
+      accessor: (item: any) => (
+        <button
+          type="button"
+          onClick={() => item.image_url && setPreviewImageUrl(item.image_url)}
+          className="w-14 h-14 rounded-2xl overflow-hidden border border-white/10 bg-white/[0.03] shadow-2xl flex items-center justify-center hover:border-[#C5A059]/40 transition-premium cursor-zoom-in"
+        >
+          {item.image_url ? (
+            <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-sm font-serif font-black text-white/30">{item.name?.charAt(0)}</span>
+          )}
+        </button>
+      )
+    },
+    {
       header: 'Olfactory Signature',
       accessor: (item: any) => (
         <div className="flex items-center gap-5 group/entry">
-          <div className="w-12 h-12 rounded-2xl bg-white/[0.03] flex items-center justify-center border border-white/10 shadow-2xl transition-premium group-hover/entry:border-[#C5A059]/40">
-            <span className="text-sm font-serif font-black text-white/30 group-hover/entry:text-[#C5A059]">{item.name?.charAt(0)}</span>
-          </div>
           <div className="flex flex-col">
             <span className="text-white font-brand font-black tracking-[0.1em] uppercase text-sm group-hover/entry:text-[#C5A059] transition-premium">{item.name}</span>
             <span className="text-[10px] uppercase tracking-[0.3em] text-white/30">{item.olfactory_character}</span>
@@ -137,12 +158,25 @@ const Notes: React.FC = () => {
         columns={columns}
         onAdd={handleAdd}
         onEdit={handleEdit}
+        onView={(item) => setViewingItem(item)}
         onArchive={async (item) => {
           const { error } = await supabase.from('perfume_notes').update({ is_archived: true }).eq('id', item.id);
           if (!error) {
             setData(prev => prev.map(i => i.id === item.id ? { ...i, is_archived: true } : i));
+            showSuccess('Note archived successfully.');
           } else {
             console.error('Failed to archive note:', error);
+            showError(`Failed to archive note: ${error.message}`);
+          }
+        }}
+        onUnarchive={async (item) => {
+          const { error } = await supabase.from('perfume_notes').update({ is_archived: false }).eq('id', item.id);
+          if (!error) {
+            setData(prev => prev.map(i => i.id === item.id ? { ...i, is_archived: false } : i));
+            showSuccess('Note restored successfully.');
+          } else {
+            console.error('Failed to restore note:', error);
+            showError(`Failed to restore note: ${error.message}`);
           }
         }}
       />
@@ -162,10 +196,26 @@ const Notes: React.FC = () => {
           </div>
           <div className="grid gap-3">
             <Label>Olfactory Character</Label>
-            <Input list="character-list" value={olfactoryCharacter} onChange={(event) => setOlfactoryCharacter(event.target.value)} placeholder="Select or type..." />
-            <datalist id="character-list">
-              {uniqueOlfactoryCharacters.map((c, i) => <option key={i} value={c as string} />)}
-            </datalist>
+            <Select value={olfactoryCharacter} onValueChange={setOlfactoryCharacter}>
+              <SelectTrigger className="h-14 rounded-2xl px-6 font-bold tracking-widest uppercase text-[10px]">
+                <SelectValue placeholder="Select Scent Profile" />
+              </SelectTrigger>
+              <SelectContent className="glass-card border-white/10 rounded-2xl text-white">
+                <SelectItem value="Fresh">Fresh</SelectItem>
+                <SelectItem value="Sweet">Sweet</SelectItem>
+                <SelectItem value="Woody">Woody</SelectItem>
+                <SelectItem value="Floral">Floral</SelectItem>
+                <SelectItem value="Spicy">Spicy</SelectItem>
+                <SelectItem value="Oriental">Oriental</SelectItem>
+                <SelectItem value="Leathery">Leathery</SelectItem>
+                <SelectItem value="Gourmand">Gourmand</SelectItem>
+                <SelectItem value="Synthetic">Synthetic</SelectItem>
+                <SelectItem value="Aquatic">Aquatic</SelectItem>
+                <SelectItem value="Green">Green</SelectItem>
+                <SelectItem value="Citrus">Citrus</SelectItem>
+                <SelectItem value="Animalic">Animalic</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-10">
             <div className="grid gap-3">
@@ -175,10 +225,11 @@ const Notes: React.FC = () => {
                   <SelectValue placeholder="Select Intensity" />
                 </SelectTrigger>
                 <SelectContent className="glass-card border-white/10 rounded-2xl text-white">
-                  <SelectItem value="Light">Light</SelectItem>
-                  <SelectItem value="Moderate">Moderate</SelectItem>
-                  <SelectItem value="Strong">Strong</SelectItem>
-                  <SelectItem value="Intense">Intense</SelectItem>
+                    <SelectItem value="Soft">Soft</SelectItem>
+                    <SelectItem value="Subtle">Subtle</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Strong">Strong</SelectItem>
+                    <SelectItem value="Overpowering">Overpowering</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -189,11 +240,12 @@ const Notes: React.FC = () => {
                   <SelectValue placeholder="Select Season" />
                 </SelectTrigger>
                 <SelectContent className="glass-card border-white/10 rounded-2xl text-white">
-                  <SelectItem value="Spring">Spring</SelectItem>
-                  <SelectItem value="Summer">Summer</SelectItem>
-                  <SelectItem value="Autumn">Autumn</SelectItem>
-                  <SelectItem value="Winter">Winter</SelectItem>
-                  <SelectItem value="All Seasons">All Seasons</SelectItem>
+                    <SelectItem value="Daily">Daily</SelectItem>
+                    <SelectItem value="Spring">Spring</SelectItem>
+                    <SelectItem value="Summer">Summer</SelectItem>
+                    <SelectItem value="Autumn">Autumn</SelectItem>
+                    <SelectItem value="Winter">Winter</SelectItem>
+                    <SelectItem value="Night Out">Night Out</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -202,14 +254,27 @@ const Notes: React.FC = () => {
             <Label>Note Description</Label>
             <Textarea value={description} onChange={(event) => setDescription(event.target.value)} className="h-44 resize-none" placeholder="Describe the scent, source, and usage profile..." />
           </div>
-          <div className="grid gap-3">
-            <Label>Image URL</Label>
-            <Input value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="https://" />
-          </div>
+          <ImageUploadField label="Note Image" value={imageUrl} onChange={setImageUrl} folder="notes" imageName={name || 'Note'} />
         </div>
       </ResourceModal>
+
+      <ImagePreviewModal
+        open={!!previewImageUrl}
+        onClose={() => setPreviewImageUrl('')}
+        src={previewImageUrl}
+        alt={name || 'Note preview'}
+      />
+
+      <ResourceViewModal
+        isOpen={!!viewingItem}
+        onClose={() => setViewingItem(null)}
+        type="note"
+        item={viewingItem}
+      />
     </div>
   );
 };
 
 export default Notes;
+
+

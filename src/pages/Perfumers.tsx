@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/lib/supabase';
 import TruncatedText from '@/components/ui/truncated-text';
+import { confirmAction, showError, showSuccess } from '@/lib/feedback';
+import ResourceViewModal from '@/components/admin/ResourceViewModal';
 
 const Perfumers: React.FC = () => {
   const [data, setData] = useState<any[]>([]);
@@ -13,6 +15,7 @@ const Perfumers: React.FC = () => {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
+  const [viewingItem, setViewingItem] = useState<any>(null);
 
   useEffect(() => {
     const fetchPerfumers = async () => {
@@ -64,12 +67,25 @@ const Perfumers: React.FC = () => {
         columns={columns}
         onAdd={() => { setEditingItem(null); setName(''); setBio(''); setIsModalOpen(true); }}
         onEdit={(item) => { setEditingItem(item); setName(item.name || ''); setBio(item.bio || ''); setIsModalOpen(true); }}
+        onView={(item) => setViewingItem(item)}
         onArchive={async (item) => {
           const { error } = await supabase.from('perfumers').update({ is_archived: true }).eq('id', item.id);
           if (!error) {
             setData(prev => prev.map(i => i.id === item.id ? { ...i, is_archived: true } : i));
+            showSuccess('Perfumer archived successfully.');
           } else {
             console.error('Failed to archive perfumer:', error);
+            showError(`Failed to archive perfumer: ${error.message}`);
+          }
+        }}
+        onUnarchive={async (item) => {
+          const { error } = await supabase.from('perfumers').update({ is_archived: false }).eq('id', item.id);
+          if (!error) {
+            setData(prev => prev.map(i => i.id === item.id ? { ...i, is_archived: false } : i));
+            showSuccess('Perfumer restored successfully.');
+          } else {
+            console.error('Failed to restore perfumer:', error);
+            showError(`Failed to restore perfumer: ${error.message}`);
           }
         }}
       />
@@ -80,6 +96,10 @@ const Perfumers: React.FC = () => {
         title={editingItem ? "Update Profile" : "Hall Induction"}
         description="Comprehensive professional and biographical documentation for the library archive."
         onSubmit={async () => {
+          if (!await confirmAction(editingItem ? 'Save changes to this perfumer?' : 'Create this perfumer?')) {
+            return;
+          }
+
           const payload = { name, bio };
 
           if (editingItem) {
@@ -87,33 +107,46 @@ const Perfumers: React.FC = () => {
             if (!error) {
               setData((prev) => prev.map((item) => item.id === editingItem.id ? { ...item, ...payload } : item));
               setIsModalOpen(false);
+              showSuccess('Perfumer updated successfully.');
             } else {
               console.error('Failed to update perfumer:', error);
+              showError(`Failed to update perfumer: ${error.message}`);
             }
           } else {
             const { data: newItems, error } = await supabase.from('perfumers').insert([{ ...payload, is_archived: false }]).select();
             if (!error && newItems) {
               setData((prev) => [...newItems, ...prev]);
               setIsModalOpen(false);
+              showSuccess('Perfumer created successfully.');
             } else {
               console.error('Failed to add perfumer:', error);
+              showError(`Failed to add perfumer: ${error?.message || 'Unknown error'}`);
             }
           }
         }}
       >
         <div className="grid gap-10">
           <div className="grid gap-3">
-            <Label htmlFor="perfumer-name">Master Name</Label>
+            <Label htmlFor="perfumer-name">Perfumer Name</Label>
             <Input id="perfumer-name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="grid gap-3">
-            <Label htmlFor="bio">Administrative Biography</Label>
+            <Label htmlFor="bio">Biography</Label>
             <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Chronological documentation of career milestones and olfactory transition..." className="h-48 resize-none" />
           </div>
         </div>
       </ResourceModal>
+
+      <ResourceViewModal
+        isOpen={!!viewingItem}
+        onClose={() => setViewingItem(null)}
+        type="perfumer"
+        item={viewingItem}
+      />
     </div>
   );
 };
 
 export default Perfumers;
+
+

@@ -3,6 +3,8 @@ import ResourceDataTable from '@/components/admin/ResourceDataTable';
 import ResourceModal from '@/components/admin/ResourceModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { confirmAction, showSuccess } from '@/lib/feedback';
+import ResourceViewModal from '@/components/admin/ResourceViewModal';
 
 
 const Accords: React.FC = () => {
@@ -13,6 +15,7 @@ const Accords: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [type, setType] = useState('CLASSICAL');
   const [status, setStatus] = useState('Curated');
+  const [viewingItem, setViewingItem] = useState<any>(null);
 
   useEffect(() => {
     // The 'perfume_accords' table does not exist in the database schema.
@@ -38,14 +41,20 @@ const Accords: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!await confirmAction(editingItem ? 'Save changes to this accord?' : 'Create this accord?')) {
+      return;
+    }
+
     if (editingItem) {
       setData((prev) => prev.map((item) => item.id === editingItem.id ? { ...item, name, notes, type, status } : item));
+      showSuccess('Accord updated successfully.');
     } else {
       setData((prev) => [
         { id: Date.now().toString(), name, notes, type, status },
         ...prev,
       ]);
+      showSuccess('Accord created successfully.');
     }
     setIsModalOpen(false);
   };
@@ -90,7 +99,11 @@ const Accords: React.FC = () => {
         columns={columns}
         onAdd={handleAdd}
         onEdit={handleEdit}
-        onArchive={(item) => setData(prev => prev.map(i => i.id === item.id ? { ...i, status: 'Archived' } : i))}
+        onView={(item) => setViewingItem(item)}
+        onArchive={(item) => {
+          setData(prev => prev.map(i => i.id === item.id ? { ...i, status: 'Archived' } : i));
+          showSuccess('Accord archived successfully.');
+        }}
       />
 
       <ResourceModal
@@ -120,8 +133,16 @@ const Accords: React.FC = () => {
           </div>
         </div>
       </ResourceModal>
+
+      <ResourceViewModal
+        isOpen={!!viewingItem}
+        onClose={() => setViewingItem(null)}
+        type="accord"
+        item={viewingItem}
+      />
     </div>
   );
 };
 
 export default Accords;
+

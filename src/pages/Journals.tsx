@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import ResourceDataTable from '@/components/admin/ResourceDataTable';
 import ResourceModal from '@/components/admin/ResourceModal';
+import ImageUploadField from '@/components/admin/ImageUploadField';
+import ImagePreviewModal from '@/components/admin/ImagePreviewModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/lib/supabase';
 import TruncatedText from '@/components/ui/truncated-text';
+import { confirmAction, showError, showSuccess } from '@/lib/feedback';
 
 const Journals: React.FC = () => {
   const [data, setData] = useState<any[]>([]);
@@ -14,6 +17,7 @@ const Journals: React.FC = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [previewImageUrl, setPreviewImageUrl] = useState('');
 
   useEffect(() => {
     const fetchJournals = async () => {
@@ -49,6 +53,10 @@ const Journals: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    if (!await confirmAction(editingItem ? 'Save changes to this journal entry?' : 'Create this journal entry?')) {
+      return;
+    }
+
     const payload = {
       title,
       content,
@@ -64,8 +72,10 @@ const Journals: React.FC = () => {
       if (!error) {
         setData((prev) => prev.map((item) => item.id === editingItem.id ? { ...item, ...payload } : item));
         setIsModalOpen(false);
+        showSuccess('Journal entry updated successfully.');
       } else {
         console.error('Failed to update journal entry:', error);
+        showError(`Failed to update journal entry: ${error.message}`);
       }
     } else {
       const { data: newItems, error } = await supabase
@@ -76,13 +86,31 @@ const Journals: React.FC = () => {
       if (!error && newItems) {
         setData((prev) => [...newItems, ...prev]);
         setIsModalOpen(false);
+        showSuccess('Journal entry created successfully.');
       } else {
         console.error('Failed to add journal entry:', error);
+        showError(`Failed to add journal entry: ${error?.message || 'Unknown error'}`);
       }
     }
   };
 
   const columns = [
+    {
+      header: 'Photo',
+      accessor: (item: any) => (
+        <button
+          type="button"
+          onClick={() => item.image_url && setPreviewImageUrl(item.image_url)}
+          className="w-14 h-14 rounded-2xl overflow-hidden border border-white/10 bg-white/[0.03] shadow-2xl flex items-center justify-center hover:border-[#C5A059]/40 transition-premium cursor-zoom-in"
+        >
+          {item.image_url ? (
+            <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-sm font-serif font-black text-white/30">J</span>
+          )}
+        </button>
+      )
+    },
     { 
       header: 'Journal Entry', 
       accessor: (item: any) => (
@@ -119,8 +147,20 @@ const Journals: React.FC = () => {
           const { error } = await supabase.from('user_journal_entries').update({ is_archived: true }).eq('id', item.id);
           if (!error) {
             setData(prev => prev.map(i => i.id === item.id ? { ...i, is_archived: true } : i));
+            showSuccess('Journal entry archived successfully.');
           } else {
             console.error('Failed to archive journal entry:', error);
+            showError(`Failed to archive journal entry: ${error.message}`);
+          }
+        }}
+        onUnarchive={async (item) => {
+          const { error } = await supabase.from('user_journal_entries').update({ is_archived: false }).eq('id', item.id);
+          if (!error) {
+            setData(prev => prev.map(i => i.id === item.id ? { ...i, is_archived: false } : i));
+            showSuccess('Journal entry restored successfully.');
+          } else {
+            console.error('Failed to restore journal entry:', error);
+            showError(`Failed to restore journal entry: ${error.message}`);
           }
         }}
       />
@@ -135,21 +175,27 @@ const Journals: React.FC = () => {
       >
         <div className="grid gap-12">
           <div className="grid gap-3">
-            <Label>Journal Title</Label>
+            <Label>Title</Label>
             <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="E.G. THE ART OF DISTILLATION" />
           </div>
+          <ImageUploadField label="Add Photo" value={imageUrl} onChange={setImageUrl} folder="journal-entries" imageName={title || 'Journal Entry'} />
           <div className="grid gap-3">
-            <Label>Image URL</Label>
-            <Input value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="https://" />
-          </div>
-          <div className="grid gap-3">
-            <Label>Entry Content</Label>
+            <Label>Impression</Label>
             <Textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="Begin documenting the olfactory narrative with scholarly precision..." className="h-64 rounded-[2rem] p-8 leading-relaxed resize-none transition-premium focus:border-[#C5A059]/30" />
           </div>
         </div>
       </ResourceModal>
+
+      <ImagePreviewModal
+        open={!!previewImageUrl}
+        onClose={() => setPreviewImageUrl('')}
+        src={previewImageUrl}
+        alt={title || 'Journal preview'}
+      />
     </div>
   );
 };
 
 export default Journals;
+
+

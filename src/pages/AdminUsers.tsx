@@ -4,6 +4,7 @@ import ResourceModal from '@/components/admin/ResourceModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
+import { confirmAction, showError, showSuccess } from '@/lib/feedback';
 
 interface AdminUser {
   id: string;
@@ -85,13 +86,20 @@ const AdminUsers: React.FC = () => {
     const { error } = await supabase.from('admin_users').delete().eq('id', item.id);
     if (!error) {
       setData((prev) => prev.filter((admin) => admin.id !== item.id));
+      showSuccess('Admin user archived successfully.');
     } else {
       console.error('Failed to archive admin user:', error);
+      showError(`Failed to archive admin user: ${error.message}`);
     }
   };
 
   const handleSubmit = async () => {
+    if (!await confirmAction(editingItem ? 'Save changes to this admin user?' : 'Create this admin user?')) {
+      return;
+    }
+
     if (!email) {
+      showError('Email is required.');
       return;
     }
 
@@ -105,8 +113,10 @@ const AdminUsers: React.FC = () => {
 
       if (error) {
         console.error('Failed to update admin user:', error.message);
+        showError(`Failed to update admin user: ${error.message}`);
       } else {
         setData((prev) => prev.map((item) => item.id === editingItem.id ? { ...item, email, display_name: displayName, role } : item));
+        showSuccess('Admin user updated successfully.');
       }
     } else {
       const { data: inserted, error } = await supabase
@@ -116,8 +126,10 @@ const AdminUsers: React.FC = () => {
 
       if (error) {
         console.error('Failed to create admin user:', error.message);
+        showError(`Failed to create admin user: ${error.message}`);
       } else if (inserted?.length) {
         setData((prev) => [inserted[0] as AdminUser, ...prev]);
+        showSuccess('Admin user created successfully.');
       }
     }
 
@@ -134,6 +146,7 @@ const AdminUsers: React.FC = () => {
         onAdd={handleAdd}
         onEdit={handleEdit}
         onArchive={handleArchive}
+        onUnarchive={handleUnarchive}
         searchPlaceholder="Search admins by email or name..."
       />
 
@@ -169,3 +182,5 @@ const AdminUsers: React.FC = () => {
 };
 
 export default AdminUsers;
+
+

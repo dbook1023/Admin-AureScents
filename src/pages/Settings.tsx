@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from '@/lib/supabase';
+import { confirmAction, showError, showSuccess } from '@/lib/feedback';
 
 const Settings: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +33,7 @@ const Settings: React.FC = () => {
       setEmail(user.email || '');
       // Fetch full bio from Supabase as it might not be in localStorage
       const fetchFullData = async () => {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('admin_users')
           .select('bio')
           .eq('id', user.id)
@@ -45,6 +46,7 @@ const Settings: React.FC = () => {
 
   const handleSaveProfile = async () => {
     if (!adminData) return;
+    if (!await confirmAction('Save profile changes?')) return;
     setIsLoading(true);
     try {
       const { error } = await supabase
@@ -62,9 +64,9 @@ const Settings: React.FC = () => {
       const updatedUser = { ...adminData, display_name: displayName, email: email };
       localStorage.setItem('adminUser', JSON.stringify(updatedUser));
       setAdminData(updatedUser);
-      alert('Profile updated successfully!');
+      showSuccess('Profile updated successfully.');
     } catch (err: any) {
-      alert('Error updating profile: ' + err.message);
+      showError('Error updating profile: ' + err.message);
     } finally {
       setIsLoading(false);
     }
@@ -72,6 +74,7 @@ const Settings: React.FC = () => {
 
   const handleUpdatePassword = async () => {
     if (!adminData || !newPassword) return;
+    if (!await confirmAction('Update your password now?')) return;
     setIsLoading(true);
     try {
       // First verify current password
@@ -83,7 +86,7 @@ const Settings: React.FC = () => {
 
       if (fetchError) throw fetchError;
       if (data.password !== currentPassword) {
-        alert('Current password incorrect.');
+        showError('Current password incorrect.');
         setIsLoading(false);
         return;
       }
@@ -94,11 +97,11 @@ const Settings: React.FC = () => {
         .eq('id', adminData.id);
 
       if (error) throw error;
-      alert('Password updated successfully!');
+      showSuccess('Password updated successfully.');
       setCurrentPassword('');
       setNewPassword('');
     } catch (err: any) {
-      alert('Error updating password: ' + err.message);
+      showError('Error updating password: ' + err.message);
     } finally {
       setIsLoading(false);
     }
@@ -255,3 +258,4 @@ const Settings: React.FC = () => {
 };
 
 export default Settings;
+
