@@ -57,10 +57,10 @@ const ResourceModal: React.FC<ResourceModalProps> = ({
         </div>
 
         <DialogFooter className="p-6 border-t border-white/5 bg-[#0A192F]/60 flex flex-col sm:flex-row gap-3">
-          <Button variant="ghost" onClick={onClose} className="glass-button-ghost rounded-xl h-11 px-6">
+          <Button variant="ghost" onClick={onClose} className="glass-button-ghost rounded-xl h-11 px-6 w-full sm:w-auto">
             Discard Entry
           </Button>
-          <Button onClick={onSubmit} className="glass-button-active h-11 px-8 rounded-xl shadow-2xl">
+          <Button onClick={onSubmit} className="glass-button-active h-11 px-8 rounded-xl shadow-2xl w-full sm:w-auto">
             {submitLabel}
           </Button>
         </DialogFooter>

@@ -123,7 +123,7 @@ const ResourceDataTable = <T extends { id: string | number; status?: string }>({
           <p className="text-white/40 mt-1 font-medium text-sm">{description}</p>
         </div>
         {onAdd && (
-          <Button onClick={onAdd} className="glass-button-active font-brand font-black text-[10px] uppercase tracking-widest h-11 px-8 rounded-xl shadow-2xl transition-premium">
+          <Button onClick={onAdd} className="glass-button-active font-brand font-black text-[10px] uppercase tracking-widest h-11 px-8 rounded-xl shadow-2xl transition-premium w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" /> Add New Entry
           </Button>
         )}
@@ -228,9 +228,9 @@ const ResourceDataTable = <T extends { id: string | number; status?: string }>({
         </CardContent>
       </Card>
       
-      <div className="flex items-center justify-between px-4 text-[10px] font-brand font-black text-white/20 uppercase tracking-[0.4em]">
-         <span>AURE SCENTS SCHOLARLY ARCHIVE</span>
-         <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 px-4 text-[10px] font-brand font-black text-white/20 uppercase tracking-[0.4em] text-center sm:text-left">
+         <span className="hidden sm:inline">AURE SCENTS SCHOLARLY ARCHIVE</span>
+         <div className="flex flex-wrap justify-center gap-2">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
               <button 
                 key={p} 
